@@ -2,7 +2,7 @@
 
 [![Validar checkpoint 5](https://github.com/peguidotte/autoescola-checkpoint5/actions/workflows/ci.yml/badge.svg)](https://github.com/peguidotte/autoescola-checkpoint5/actions/workflows/ci.yml)
 
-API REST em Java 17 e Spring Boot para cadastro de alunos, instrutores e usuários, com agendamento, reagendamento e cancelamento de instruções. Desenvolvida para a disciplina **SOA e WebServices**, a partir do projeto de aula `AutoEscola3ESPV 15.zip`.
+API REST em Java 17 e Spring Boot para cadastro de alunos, instrutores e usuários, com agendamento, reagendamento e cancelamento de instruções. Desenvolvida para a disciplina **SOA e WebServices**.
 
 ## Integrantes
 
