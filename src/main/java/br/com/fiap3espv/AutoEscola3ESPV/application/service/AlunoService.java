@@ -29,7 +29,7 @@ public class AlunoService {
     @Transactional
     public DadosDetalhamentoAluno atualizar(DadosAtualizacaoAluno d) {
         Aluno aluno = buscar(d.id());
-        aluno.atualizar(d.nome(), d.telefone(), d.email(), mapper.toVo(d.endereco()));
+        aluno.atualizar(d.nome(), d.telefone(), mapper.toVo(d.endereco()));
         return new DadosDetalhamentoAluno(aluno);
     }
     @Transactional

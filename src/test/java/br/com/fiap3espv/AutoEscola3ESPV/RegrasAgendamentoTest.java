@@ -22,12 +22,11 @@ class RegrasAgendamentoTest {
         assertThatThrownBy(() -> new ValidadorHorarioFuncionamento().validar(dados(segunda.minusDays(1)))).isInstanceOf(ValidacaoException.class);
         assertThatCode(() -> new ValidadorHorarioFuncionamento().validar(dados(segunda.minusDays(2)))).doesNotThrowAnyException();
     }
-    @Test void aceitaHoraInteiraERejeitaMinutosSegundosENanos() {
-        var validador = new ValidadorHoraInteira();
-        assertThatCode(() -> validador.validar(dados(segunda))).doesNotThrowAnyException();
-        assertThatThrownBy(() -> validador.validar(dados(segunda.plusMinutes(1)))).isInstanceOf(ValidacaoException.class);
-        assertThatThrownBy(() -> validador.validar(dados(segunda.plusSeconds(1)))).isInstanceOf(ValidacaoException.class);
-        assertThatThrownBy(() -> validador.validar(dados(segunda.plusNanos(1)))).isInstanceOf(ValidacaoException.class);
+    @Test void permiteHorarioFracionadoMasAulaDeveTerminarAteAsVinteEUma() {
+        var validador = new ValidadorHorarioFuncionamento();
+        assertThatCode(() -> validador.validar(dados(segunda.withHour(19).withMinute(30)))).doesNotThrowAnyException();
+        assertThatCode(() -> validador.validar(dados(segunda.withHour(20)))).doesNotThrowAnyException();
+        assertThatThrownBy(() -> validador.validar(dados(segunda.withHour(20).withMinute(1)))).isInstanceOf(ValidacaoException.class);
     }
     @Test void antecedenciaDeExatosTrintaMinutosEPermitida() {
         var clock = Clock.fixed(segunda.atZone(ZoneId.of("America/Sao_Paulo")).toInstant(), ZoneId.of("America/Sao_Paulo"));

@@ -28,26 +28,28 @@ class ConcorrenciaAgendaTest extends BaseApiTest {
     }
 
     @Test @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void duasRequisicoesNaoAgendamDuasAulasDoAlunoNoMesmoDia() throws Exception {
-        var aluno = aluno(); var primeiro = instrutor(); var segundo = instrutor();
+    void tresRequisicoesSimultaneasNaoUltrapassamDuasAulasDoAlunoNoDia() throws Exception {
+        var aluno = aluno(); var primeiro = instrutor(); var segundo = instrutor(); var terceiro = instrutor();
         try {
             disputar(new DadosAgendamento(aluno.getId(), primeiro.getId(), null, horario()),
-                new DadosAgendamento(aluno.getId(), segundo.getId(), null, horario().plusHours(1)));
+                new DadosAgendamento(aluno.getId(), segundo.getId(), null, horario().plusHours(1)),
+                new DadosAgendamento(aluno.getId(), terceiro.getId(), null, horario().plusHours(2)));
         } finally {
-            limpar(List.of(aluno.getId()), List.of(primeiro.getId(), segundo.getId()));
+            limpar(List.of(aluno.getId()), List.of(primeiro.getId(), segundo.getId(), terceiro.getId()));
         }
     }
 
-    private void disputar(DadosAgendamento primeiro, DadosAgendamento segundo) throws Exception {
-        var executor = Executors.newFixedThreadPool(2);
+    private void disputar(DadosAgendamento... pedidos) throws Exception {
+        var executor = Executors.newFixedThreadPool(pedidos.length);
         var iniciar = new CountDownLatch(1);
         try {
-            Callable<String> a = () -> tentar(primeiro, iniciar);
-            Callable<String> b = () -> tentar(segundo, iniciar);
-            var resultadoA = executor.submit(a); var resultadoB = executor.submit(b);
+            var futuros = new java.util.ArrayList<Future<String>>();
+            for (var pedido : pedidos) futuros.add(executor.submit(() -> tentar(pedido, iniciar)));
             iniciar.countDown();
-            assertThat(List.of(resultadoA.get(20, TimeUnit.SECONDS), resultadoB.get(20, TimeUnit.SECONDS)))
-                .containsExactlyInAnyOrder("criada", "recusada");
+            var resultados = new java.util.ArrayList<String>();
+            for (var futuro : futuros) resultados.add(futuro.get(20, TimeUnit.SECONDS));
+            assertThat(resultados.stream().filter("criada"::equals).count()).isEqualTo(pedidos.length - 1);
+            assertThat(resultados.stream().filter("recusada"::equals).count()).isEqualTo(1);
         } finally { executor.shutdownNow(); }
     }
 

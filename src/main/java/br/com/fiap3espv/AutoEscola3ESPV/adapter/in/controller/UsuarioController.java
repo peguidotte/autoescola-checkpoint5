@@ -18,6 +18,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 @PreAuthorize("hasRole('ADMIN')") @Tag(name = "Usuários")
 public class UsuarioController {
     private final UsuarioService service;
+    @PutMapping("/senha") @PreAuthorize("isAuthenticated()")
+    @io.swagger.v3.oas.annotations.Operation(summary = "Alterar a própria senha informando a senha atual")
+    public ResponseEntity<Void> alterarPropriaSenha(@RequestBody @Valid DadosAlteracaoSenha dados,
+        org.springframework.security.core.Authentication authentication) {
+        service.alterarPropriaSenha(authentication.getName(), dados);
+        return ResponseEntity.noContent().build();
+    }
     @PostMapping public ResponseEntity<DadosDetalhamentoUsuario> cadastrar(@RequestBody @Valid DadosCadastroUsuario dados, UriComponentsBuilder uri) {
         var usuario = service.cadastrar(dados);
         return ResponseEntity.created(uri.path("/usuario/{id}").buildAndExpand(usuario.id()).toUri()).body(usuario);

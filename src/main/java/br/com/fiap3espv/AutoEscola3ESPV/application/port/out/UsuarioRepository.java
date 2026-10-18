@@ -9,6 +9,9 @@ import java.util.*;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByLogin(String login);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Usuario u where u.login = :login")
+    Optional<Usuario> buscarParaAlterarSenha(String login);
     Page<Usuario> findAllByAtivoTrue(Pageable pageable);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from Usuario u where u.papel = :papel and u.ativo = true order by u.id")

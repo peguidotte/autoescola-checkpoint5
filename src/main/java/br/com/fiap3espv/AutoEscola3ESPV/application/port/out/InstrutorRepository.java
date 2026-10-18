@@ -14,6 +14,6 @@ public interface InstrutorRepository extends JpaRepository<Instrutor, Long> {
     @Query("select i from Instrutor i where i.id = :id")
     Optional<Instrutor> buscarParaAgendamento(Long id);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select i from Instrutor i where i.ativo = true and i.especialidade = :especialidade order by i.id")
+    @Query("select i from Instrutor i where i.ativo = true and (:especialidade is null or i.especialidade = :especialidade) order by i.id")
     List<Instrutor> buscarCandidatos(Especialidade especialidade);
 }

@@ -7,5 +7,6 @@ public record DadosListagemInstrutores(
         Long id,
         String nome,
         String email,
+        String cnh,
         Especialidade especialidade) {
 }

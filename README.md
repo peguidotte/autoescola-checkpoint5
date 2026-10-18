@@ -23,7 +23,7 @@ API REST em Java 17 e Spring Boot para cadastro de alunos, instrutores e usuári
 - CRUD completo das quatro entidades e regras dos checkpoints anteriores identificadas no material fornecido.
 - Pipeline GitHub Actions com Java 17/21 e H2, mais Java 17 e MySQL 8.4.
 
-O detalhamento da verificação está em [Critérios de aceite](docs/criterios-de-aceite.md).
+O detalhamento da verificação está em [Critérios de aceite](docs/criterios-de-aceite.md) e na [Conferência das regras do CRUD e do CP4](docs/conformidade-cp3-cp4.md).
 
 ## Executar em poucos passos
 
@@ -87,12 +87,13 @@ Todos os recursos abaixo exigem `Authorization: Bearer <token>`, exceto login, h
 | `/instrutor/{id}` | GET, DELETE | Leitura: ADMIN/USER; exclusão: ADMIN |
 | `/usuario` | POST, GET, PUT | ADMIN |
 | `/usuario/{id}` | GET, DELETE | ADMIN |
+| `/usuario/senha` | PUT | Próprio usuário autenticado (ADMIN/USER) |
 | `/instrucao` | POST, GET, PUT | ADMIN/USER |
 | `/instrucao/{id}` | GET, DELETE | ADMIN/USER |
 | `/instrucao/{id}/cancelamento` | POST | ADMIN/USER |
 | `/endereco/cep/{cep}` | GET | ADMIN/USER |
 
-Os PUTs recebem o `id` no corpo. Na atualização de uma instrução, `dataHora` é obrigatória; omitir aluno e instrutor mantém os participantes. Informar apenas uma especialidade seleciona um instrutor disponível dessa especialidade. As listagens são paginadas (`page`, `size`, `sort`), com alunos/instrutores/usuários ativos. Instruções canceladas continuam no histórico.
+Os PUTs de cadastro recebem o `id` no corpo; a troca da própria senha usa a identidade do JWT. Em alunos, apenas nome, telefone e endereço podem mudar: e-mail e CPF são imutáveis. Em instrutores, apenas nome, telefone e endereço podem mudar: e-mail, CNH e especialidade são imutáveis. Enviar um campo imutável no PUT retorna 400. A listagem de instrutores inclui nome, e-mail, CNH e especialidade, ordenada por nome com dez registros por página por padrão. Na atualização de uma instrução, `dataHora` é obrigatória; omitir aluno e instrutor mantém os participantes. Informar apenas uma especialidade seleciona um instrutor disponível dessa especialidade. As listagens são paginadas (`page`, `size`, `sort`), com alunos/instrutores/usuários ativos. Instruções canceladas continuam no histórico.
 
 ## Exemplos de corpos
 
@@ -116,7 +117,7 @@ Aluno:
 }
 ```
 
-Para um instrutor, use o mesmo formato de endereço e os campos `nome`, `telefone`, `email`, `cnh` e `especialidade`. As especialidades aceitas são `MOTOS`, `CARROS`, `VANS` e `CAMINHOES`. O CPF tem 11 dígitos e a CNH, de 9 a 11 dígitos, preservando o contrato da aula.
+Para um instrutor, use o mesmo formato de endereço e os campos `nome`, `email`, `cnh` e `especialidade`. O telefone fica oculto no formulário de cadastro do Swagger, pode ser omitido inicialmente e preenchido na atualização, conforme o documento do CRUD. As especialidades aceitas são `MOTOS`, `CARROS`, `VANS` e `CAMINHOES`. O CPF tem 11 dígitos e a CNH, de 9 a 11 dígitos, preservando o contrato da aula.
 
 Agendamento com instrutor escolhido:
 
@@ -140,24 +141,24 @@ Agendamento por especialidade:
 
 Use uma data futura e IDs existentes. A API também aceita os aliases `id_aluno`, `id_instrutor` e `data_hora` usados no material da aula. Datas seguem `dd/MM/yyyy - HH:mm`, no fuso `America/Sao_Paulo`.
 
-Cancelamento: `DELETE /instrucao/1?motivo=ALUNO_DESISTIU`, ou `POST /instrucao/1/cancelamento` com `{"motivo":"ALUNO_DESISTIU"}`. Motivos: `ALUNO_DESISTIU`, `INSTRUTOR_CANCELOU` e `OUTROS`. O DELETE assume `OUTROS` quando o parâmetro é omitido.
+Cancelamento: `DELETE /instrucao/1?motivo=ALUNO_DESISTIU`, ou `POST /instrucao/1/cancelamento` com `{"motivo":"ALUNO_DESISTIU"}`. Motivos: `ALUNO_DESISTIU`, `INSTRUTOR_CANCELOU` e `OUTROS`. O motivo é obrigatório nas duas rotas; sua ausência ou um valor fora dessas opções retorna 400.
 
-Usuário: `POST /usuario` com `{"login":"operador","senha":"SenhaForte@123","papel":"USER"}`. Senhas recebem hash BCrypt e nunca aparecem nas respostas. O último administrador ativo não pode ser excluído ou rebaixado.
+Usuário: `POST /usuario` com `{"login":"operador","senha":"SenhaForte@123","papel":"USER"}`. Senhas recebem hash BCrypt e nunca aparecem nas respostas. O último administrador ativo não pode ser excluído ou rebaixado. Para alterar a própria senha, qualquer usuário autenticado pode fazer `PUT /usuario/senha` com `{"senhaAtual":"SenhaForte@123","novaSenha":"OutraSenhaForte@123"}`. A identidade vem do JWT; esse endpoint não recebe ID de outro usuário e valida a senha atual.
 
 ## Regras da agenda
 
 - Funcionamento de segunda a sábado, das 6h às 21h. Último início permitido: 20h.
-- Aulas de uma hora, começando em hora inteira.
+- Aulas de uma hora. Horários como 09h30 são aceitos, desde que a aula inteira caiba no expediente.
 - Agendamento com antecedência mínima de 30 minutos.
 - Aluno e instrutor devem existir e estar ativos.
-- Apenas uma instrução não cancelada por aluno em cada dia.
-- Instrutor não pode ter duas instruções no mesmo horário.
-- Quando o instrutor não é informado, a especialidade é obrigatória e a seleção considera apenas instrutores ativos e livres.
+- Até duas instruções não canceladas por aluno em cada dia; a terceira é bloqueada.
+- Instrutor não pode ter instruções com intervalos sobrepostos. Aulas consecutivas são permitidas.
+- A escolha do instrutor é opcional. Quando omitido, o sistema sorteia um instrutor ativo e livre; a especialidade pode ser usada como filtro opcional.
 - Cancelamento mantém motivo e data no histórico, liberando o horário e o limite diário.
 - Reagendamento passa pelas mesmas validações e não considera a própria instrução como conflito.
 - Transações com bloqueio de registros impedem reservas simultâneas conflitantes.
 
-**Regra assumida:** o enunciado menciona outro anexo de regras de negócio, que não está entre os arquivos fornecidos. As regras acima foram extraídas do código; para cancelamento, ausente na base, foi adotada antecedência de **24 horas**. O mesmo prazo vale para alterar uma reserva existente, evitando contornar o cancelamento por reagendamento. A configuração `CANCELAMENTO_ANTECEDENCIA` permite ajustar esse prazo, por exemplo `24h` ou `30m`.
+O documento `CRUD - Auto-Escola - Completo - 3ESPV.docx` confirma a antecedência mínima de **24 horas** para cancelamento. O mesmo prazo vale para alterar uma reserva existente, evitando contornar o cancelamento por reagendamento. A configuração `CANCELAMENTO_ANTECEDENCIA` tem padrão `24h`; para a entrega acadêmica, mantenha esse valor.
 
 ## Usar MySQL
 
@@ -175,7 +176,7 @@ $env:ADMIN_PASSWORD = 'sua-senha-inicial-forte'
 .\mvnw.cmd spring-boot:run
 ```
 
-O arquivo [.env.example](.env.example) documenta as variáveis; Spring não lê `.env` automaticamente. Flyway executa as migrações e Hibernate valida o esquema. V1 a V5 foram preservadas da aula; V6 adiciona papel/estado dos usuários, unicidade de login, histórico de cancelamento e índices. Se uma base anterior contiver logins duplicados, é necessário reconciliá-los antes de aplicar a restrição única.
+O arquivo [.env.example](.env.example) documenta as variáveis; Spring não lê `.env` automaticamente. Flyway executa as migrações e Hibernate valida o esquema. V1 a V5 foram preservadas da aula; V6 adiciona papel/estado dos usuários, unicidade de login, histórico de cancelamento e índices. V7 permite omitir o telefone do instrutor no cadastro inicial. Se uma base anterior contiver logins duplicados, é necessário reconciliá-los antes de aplicar a restrição única.
 
 ## CORS e integração externa
 
@@ -189,7 +190,7 @@ O endpoint `/endereco/cep/01001000` chama `https://viacep.com.br/ws/01001000/jso
 .\mvnw.cmd clean verify
 ```
 
-O perfil `test` usa H2 em memória, migrações reais e rollback para isolamento. Há testes HTTP de integração das quatro entidades, casos positivos e negativos, conflitos de agendamento, exclusão lógica, cancelamento, permissões, login com JWT real, CORS, Swagger e respostas do ViaCEP. Os testes de concorrência executam duas transações independentes. O relatório de cobertura é gerado em `target/site/jacoco/index.html` e os resultados JUnit em `target/surefire-reports/`.
+O perfil `test` usa H2 em memória, migrações reais e rollback para isolamento. Há testes HTTP de integração das quatro entidades, casos positivos e negativos, conflitos de agendamento, exclusão lógica, cancelamento, permissões, login com JWT real, CORS, Swagger e respostas do ViaCEP. Os testes de concorrência disputam uma vaga de instrutor em duas transações e o limite diário do aluno em três transações independentes. O relatório de cobertura é gerado em `target/site/jacoco/index.html` e os resultados JUnit em `target/surefire-reports/`.
 
 O projeto mantém o pacote e a divisão em controllers/DTOs, serviços, regras de agendamento, repositórios, domínio e configurações da aula. O ZIP continha uma migração parcial para outro modelo de persistência; os imports e o mapeamento de instrutores foram normalizados para um único modelo JPA, compatível com as relações de aluno/instrução e com as migrações existentes.
 

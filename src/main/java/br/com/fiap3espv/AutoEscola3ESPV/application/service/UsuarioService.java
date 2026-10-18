@@ -17,6 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class UsuarioService {
     private final UsuarioRepository repository;
     private final PasswordEncoder encoder;
+    @Transactional public void alterarPropriaSenha(String login, DadosAlteracaoSenha dados) {
+        Usuario usuario = repository.buscarParaAlterarSenha(login)
+            .orElseThrow(() -> new org.springframework.security.authentication.BadCredentialsException("Usuário inválido"));
+        if (!usuario.isAtivo() || !encoder.matches(dados.senhaAtual(), usuario.getSenha()))
+            throw new org.springframework.security.authentication.BadCredentialsException("Senha atual inválida");
+        usuario.atualizar(null, encoder.encode(dados.novaSenha()), null);
+    }
     @Transactional public DadosDetalhamentoUsuario cadastrar(DadosCadastroUsuario d) {
         return new DadosDetalhamentoUsuario(repository.save(new Usuario(null, d.login(), encoder.encode(d.senha()), d.papel(), true)));
     }

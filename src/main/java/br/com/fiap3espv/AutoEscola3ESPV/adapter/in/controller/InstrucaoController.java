@@ -29,7 +29,7 @@ public class InstrucaoController {
     public DetalhamentoAgendamento atualizar(@RequestBody @Valid DadosAtualizacaoInstrucao dados) { return agenda.atualizar(dados); }
     @DeleteMapping("/{id}") @Operation(summary = "Cancelar uma instrução, preservando o histórico")
     public ResponseEntity<Void> cancelar(@PathVariable Long id,
-        @RequestParam(defaultValue = "OUTROS") MotivoCancelamento motivo) {
+        @RequestParam MotivoCancelamento motivo) {
         agenda.cancelar(id, motivo); return ResponseEntity.noContent().build();
     }
     @PostMapping("/{id}/cancelamento") @Operation(summary = "Cancelar uma instrução informando o motivo no corpo")

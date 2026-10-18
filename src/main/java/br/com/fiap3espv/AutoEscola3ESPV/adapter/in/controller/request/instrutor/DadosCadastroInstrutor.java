@@ -12,7 +12,8 @@ public record DadosCadastroInstrutor(
         @NotBlank
         String nome,
 
-        @NotBlank
+        @io.swagger.v3.oas.annotations.media.Schema(hidden = true)
+        @jakarta.validation.constraints.Size(min = 1, max = 20)
         String telefone,
 
         @NotBlank

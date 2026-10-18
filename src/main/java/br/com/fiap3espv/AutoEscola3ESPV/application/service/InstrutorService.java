@@ -52,8 +52,6 @@ public class InstrutorService {
         instrutor.atualizarInformacoes(
                 dados.nome(),
                 dados.telefone(),
-                dados.email(),
-                dados.especialidade(),
                 enderecoMapper.toVo(dados.endereco())
         );
         Instrutor salvo = repository.save(instrutor);

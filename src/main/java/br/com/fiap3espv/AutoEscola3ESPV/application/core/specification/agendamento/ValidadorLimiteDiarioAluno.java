@@ -11,7 +11,7 @@ public class ValidadorLimiteDiarioAluno implements ValidadorAgendamento {
     private final InstrucaoRepository repository;
     @Override public void validar(DadosAgendamento dados, Long ignorarId) {
         var inicio = dados.dataHora().toLocalDate().atStartOfDay();
-if (repository.alunoTemInstrucaoNoDia(dados.idAluno(), inicio, inicio.plusDays(1), ignorarId))
-    throw new ValidacaoException("Permitida apenas uma instrução diária por aluno");
+        if (repository.contarInstrucoesNoDia(dados.idAluno(), inicio, inicio.plusDays(1), ignorarId) >= 2)
+            throw new ValidacaoException("Permitidas no máximo duas instruções diárias por aluno");
     }
 }

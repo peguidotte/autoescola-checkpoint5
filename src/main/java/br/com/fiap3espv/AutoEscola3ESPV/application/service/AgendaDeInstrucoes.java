@@ -52,6 +52,7 @@ public class AgendaDeInstrucoes {
         return new DetalhamentoAgendamento(instrucao);
     }
     @Transactional public void cancelar(Long id, MotivoCancelamento motivo) {
+        if (motivo == null) throw new ValidacaoException("O motivo do cancelamento é obrigatório");
         Instrucao instrucao = buscarParaAlteracao(id);
         validarPrazoAlteracao(instrucao);
         instrucao.cancelar(motivo, LocalDateTime.now(clock));
@@ -77,7 +78,6 @@ public class AgendaDeInstrucoes {
     private Instrutor escolherInstrutor(DadosAgendamento dados, Long ignorarId) {
         if (dados.idInstrutor() != null)
             return instrutorRepository.buscarParaAgendamento(dados.idInstrutor()).orElseThrow(() -> new InstrutorNotFoundException("Instrutor não encontrado"));
-        if (dados.especialidade() == null) throw new ValidacaoException("Especialidade é obrigatória quando o instrutor não é informado");
         // As linhas são bloqueadas sempre na mesma ordem; nenhuma seleção ignora um agendamento concorrente.
         var disponiveis = instrutorRepository.buscarCandidatos(dados.especialidade()).stream()
             .filter(i -> !repository.instrutorOcupado(i.getId(), dados.dataHora(), ignorarId)).toList();
